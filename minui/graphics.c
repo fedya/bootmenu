@@ -88,7 +88,6 @@ static int get_framebuffer(GGLSurface *fb)
     fb->stride = vi.xres;
     fb->data = bits;
     fb->format = GGL_PIXEL_FORMAT_RGB_565;
-    memset(fb->data, 0, vi.yres * vi.xres * 2);
 
     fb++;
 
@@ -98,7 +97,6 @@ static int get_framebuffer(GGLSurface *fb)
     fb->stride = vi.xres;
     fb->data = (void*) (((unsigned) bits) + vi.yres * vi.xres * 2);
     fb->format = GGL_PIXEL_FORMAT_RGB_565;
-    memset(fb->data, 0, vi.yres * vi.xres * 2);
 
     return fd;
 }
@@ -118,17 +116,6 @@ static void set_active_framebuffer(unsigned n)
     vi.yres_virtual = vi.yres * 2;
     vi.yoffset = n * vi.yres;
     vi.bits_per_pixel = 16;
-    if (ioctl(gr_fb_fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
-        perror("active fb swap failed");
-    }
-}
-
-static void set_final_framebuffer(unsigned n)
-{
-    if (n > 1) return;
-    vi.yres_virtual = vi.yres * 2;
-    vi.yoffset = n * vi.yres;
-    vi.bits_per_pixel = 32;
     if (ioctl(gr_fb_fd, FBIOPUT_VSCREENINFO, &vi) < 0) {
         perror("active fb swap failed");
     }
@@ -290,6 +277,7 @@ int gr_init(void)
     set_active_framebuffer(0);
     gl->colorBuffer(gl, &gr_mem_surface);
 
+
     gl->activeTexture(gl, 0);
     gl->enable(gl, GGL_BLEND);
     gl->blendFunc(gl, GGL_SRC_ALPHA, GGL_ONE_MINUS_SRC_ALPHA);
@@ -299,16 +287,12 @@ int gr_init(void)
 
 void gr_exit(void)
 {
-    set_final_framebuffer(0);
-//    set_final_framebuffer(1);
-
     close(gr_fb_fd);
     gr_fb_fd = -1;
 
     free(gr_mem_surface.data);
 
-    ioctl(gr_vt_fd, KDSETMODE, (void*) KD_GRAPHICS);
-//    ioctl(gr_vt_fd, KDSETMODE, (void*) KD_TEXT);
+    ioctl(gr_vt_fd, KDSETMODE, (void*) KD_TEXT);
     close(gr_vt_fd);
     gr_vt_fd = -1;
 }
